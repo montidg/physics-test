@@ -7,14 +7,10 @@
 <script>
     let rect = {
         points: [
-            [13.820394,173.18048],
-            [12.968946,53.56121],
-            [25.195312,53.6505],
-            [76.688089,148.57609],
-            [40.114529,116.49192],
-            [32.439234,156.44847], 
-            [86.079789,195.27127],
-            [108.40258,116.98358],[61.572425,86.262567],[93.871155,31.254717],[134.19208,47.428505],[155.85331,170.43225],[106.78994,266.45433],[24.783022,262.22076],[79.786008,235.52481],[33.905287,209.06263],[5.0651629,204.20621]
+            [0,0],
+            [0,100],
+            [100,200],
+            [100,0]
         ],
         x: 100,
         y: 100,
@@ -36,11 +32,20 @@
         _bottom: 0,
         _top: 0,
         _left: 0,
-        _right: 0
+        _right: 0,
+
+        _bottomX: 0,
+        _bottomN: 0,
+
+        _center: [0,0],
+        _centerT: [0,0]
     };
 
     let stage = {
-        w: 1
+        w: 1,
+        x: 0,
+        y: 0,
+        elem: null
     };
 
     let floor = {
@@ -49,8 +54,15 @@
 
     function ground(obj) {
         if (obj.y > floor.y - obj._bottom) {
-            obj._yVel *= 0;
+            obj._yVel *= -1;
             obj.y = floor.y - obj._bottom;
+
+            if (Math.abs(obj._bottom - obj._bottomN) > 2) {
+                obj._rVel += (obj._centerT[0] - obj._bottomX) / 100
+            } else {
+                obj._rVel = 0;
+            }
+            
         }
 
         return obj;
@@ -59,13 +71,18 @@
     function vel(obj) {
         obj._yVel += 0.04;
         
-        obj._rVel *= 0.99;
+        obj._rVel *= 0.98;
         obj._yVel *= 0.995;
         obj._xVel *= 0.995;
 
         obj.x += obj._xVel;
         obj.y += obj._yVel;
         obj.rotation += obj._rVel;
+        
+        let off = rotate(obj._centerT[0], obj._centerT[1], obj._rVel / 180 * Math.PI);
+
+        obj.x -= obj._centerT[0] - off[0];
+        obj.y -= obj._centerT[1] - off[1];
 
         return obj;
     }
@@ -98,6 +115,20 @@
             };
         }
 
+        let avg = [0,0];
+        let totalMass = 0;
+        for (var i = 0; i < obj._triangles.length; i++) {
+            let mass = obj._triangles[i].mass;
+            totalMass += mass;
+            avg[0] += obj._triangles[i].center[0] * mass;
+            avg[1] += obj._triangles[i].center[1] * mass;
+        }
+
+        avg[0] /= totalMass;
+        avg[1] /= totalMass;
+
+        obj._center = avg;
+
         return obj;
     }
 
@@ -129,23 +160,37 @@
         obj._bottom = bData[bData.length - 1];
         obj._top = bData[0];
 
-        obj._right = bData[bData.length - 1];
-        obj._left = bData[0];
+        obj._right = bDataH[bDataH.length - 1];
+        obj._left = bDataH[0];
+
+        obj._bottomX = obj._pointsT.sort((a,b) => a[1] - b[1])[bData.length - 1][0];
+        obj._bottomN = bData[bData.length - 2];
+
+        obj._centerT = rotate(obj._center[0], obj._center[1], -obj._radians);
 
         return obj;
     }
 
     function main() {
-        rect = vel(rect);
         rect = length(rect);
+        rect = vel(rect);
         rect = ground(rect);
+
+        if (rect.x > 1900){ 
+            rect.x = 0;
+        }
+
+        if (rect.x < -50){ 
+            rect.x = 1900;
+        }
     }
 
     function clickFunc(e) {
-        let off = (e.offsetX / (stage.w / 1920) - rect.x - (rect._left) / 2) / -20;
-        console.log(rect._strLen);
+        let x = (e.clientX - stage.elem.offsetLeft)  / (stage.w / 1920);
+        let off = (x - rect.x - rect._center[0]) / -20;
         rect._yVel += -5;
         rect._xVel += off;
+        rect._rVel += off * 2;
     }
 
     function downFunc(e) {
@@ -160,7 +205,7 @@
     setInterval(main,0);
 </script>
 
-<div width="80vw" height="45vw" bind:clientWidth={stage.w} >
+<div width="80vw" height="45vw" bind:clientWidth={stage.w} bind:this={stage.elem} >
     <svg width="80vw" height="45vw" viewBox="0 0 1920 1080">
         <path fill="rgb(0,45,90)" d="M 0 900 h 1920 v 180 h -1920 Z"/>
         <!-- svelte-ignore a11y-click-events-have-key-events -->

@@ -102,13 +102,11 @@
             let found = false;
             for (var x = 0; x < triA.length; x++) {
                 for (var y = 0; y < triB.length; y++) {
-                    if (cross(triA[x],triB[y]) && cross(triB[y],triA[x])) {
-                        obj._collide.push(i);
+                    if (!(cross(triA[x],triB[y]) || cross(triB[y],triA[x]))) {
+                        obj._collide.push([i]);
                         found = true;
-                        break;
                     }
                 }
-                if (found) break;
             }
         }
 
@@ -128,9 +126,10 @@
             
             if (dir == 1) {
                 obj.y = obj._oldY - obj._yVel * 3;
-                obj._yVel = 0;
+                obj._yVel = 0;             
+
                 if (obj._signature[1] == -1) {
-                    obj._rVel += (obj._centerT[0] - obj._bottomX + obj.x) / 1000
+                    obj._rVel += (obj._centerT[0] - obj._bottomX + obj.x) / 2000
                 } else {
                     obj._rVel = 0
                 }
@@ -231,9 +230,19 @@
         obj._radians = obj.rotation / 180 * Math.PI;
 
         obj._trianglesT = obj._triangles.map(tri => {
-            tri.data = tri.data.map((arr) => rotate(arr[0],arr[1],obj._radians,obj._center));
-            tri.center = rotate(tri.center[0],tri.center[1],-obj._radians,obj._center);
-            return tri;
+            let newTri = {};
+
+            newTri.data = [];
+
+            for (var i = 0; i < tri.data.length; i++) {
+                let arr = tri.data[i];
+                let out = rotate(arr[0],arr[1],-obj._radians,obj._center);
+                let out2 = [out[0]+obj.x,out[1]+obj.y];
+                newTri.data.push(out2);
+            };
+
+            newTri.center = rotate(tri.center[0],tri.center[1],-obj._radians,obj._center);
+            return newTri;
         })
 
         obj._pointsT = obj.points.map(point => {
@@ -314,10 +323,11 @@
         }),
         initObj({
             points: [
-                [0,900],
-                [0,1080],
+                [1920,900],
                 [1920,1080],
-                [1920,900]
+                [0,1080],
+                [0,900],
+                [1920/2,700],
             ],
             x: 0,
             y: 0,

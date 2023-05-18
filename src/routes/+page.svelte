@@ -9,9 +9,9 @@
 </style>
 
 <script>
-    function initObj({points, x, y, rotation}) {
+    function initObj({points, x, y, rotation, vel}) {
         let obj = {
-            points,x,y,rotation,
+            points,x,y,rotation,vel,
 
             _radians: 0,
 
@@ -135,7 +135,6 @@
                 }
                 
             } else {
-                
                 obj.x = obj._oldX - obj._xVel * 3;
                 obj._xVel = 0;
             }
@@ -153,7 +152,7 @@
         return obj;
     }
 
-    function vel(obj) {
+    function vel(obj, index) {
         if (obj._signature[1] == 0) {
             obj._yVel += 0.04;
         }
@@ -163,11 +162,11 @@
         obj._xVel *= 0.995;
 
         obj.y += obj._yVel;
-        obj = collide(0,area);
+        obj = collide(index,area);
         obj = ground(obj,1,Math.sign(obj._xVel),Math.sign(obj._yVel));
 
         obj.x += obj._xVel;
-        obj = collide(0,area);
+        obj = collide(index,area);
         obj = ground(obj,0,Math.sign(obj._xVel),Math.sign(obj._yVel));
 
         obj.rotation += obj._rVel;
@@ -273,12 +272,14 @@
     }
 
     function main() {
-        for (var i = 0; i < area.length; i++) {
+        for (let i = 0; i < area.length; i++) {
             area[i] = length(area[i]);
             area[i].index = i;
+
+            if (area[i].vel)
+                area[i] = vel(area[i],i);
         }
 
-        area[0] = vel(area[0]);
 
         stage.x += 1920 / 2;
         stage.y += 1300 / 2;
@@ -320,6 +321,7 @@
             x: 100,
             y: 100,
             rotation: 25,
+            vel: true
         }),
         initObj({
             points: [
@@ -365,8 +367,23 @@
             x: 0,
             y: 0,
             rotation: 0,
-        }),
+        })
     ];
+
+    for (let i = 0; i < 10; i++) {
+        area.push(initObj({
+            points: [
+                [0,0],
+                [0,100],
+                [100,200],
+                [100,0]
+            ],
+            x: 100+(i+1)*300,
+            y: 100,
+            rotation: 25,
+            vel: true
+        }));
+    }
 
     area = area.map(x => partition(x));
 
